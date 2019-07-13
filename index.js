@@ -4,6 +4,8 @@ let app = express();
 
 app.use(express.static('public'));
 
-app.listen(8080, function() {
-   console.log("Webserver läuft auf Port 8080");
+let port = process.env.PORT || 8080;
+
+app.listen(port, function() {
+   console.log("Webserver läuft auf Port " + port);
 })
