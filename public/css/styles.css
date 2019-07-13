@@ -1,0 +1,80 @@
+@font-face {
+  font-family: Adda;
+  src: url(Adda.woff);
+}
+
+.buchstabensalat {
+  font-family: Adda;
+  font-size: 2em;
+  background-color: #dddddd;
+}
+
+.ausgabe {
+   height: 70vh;
+   border: 1px solid black;
+   margin-bottom: 10px;
+   background-color: #d8d6bb;
+   overflow: auto;
+}
+
+.meintext {
+   float: right;
+   color: black;
+   background-color: #c3ecac;
+   padding: 10px 10px 0px 10px;
+   margin-top: 10px;
+   margin-right: 20px;
+   border-radius: 10px;
+   clear: both;
+   margin-left: 20%;
+   text-align: right;
+   line-height: 0.92em;
+}
+
+.anderertext {
+   float: left;
+   color: black;
+   background-color: white;
+   padding: 10px 10px 0px 10px;
+   margin-top: 10px;
+   margin-right: 20%;
+   border-radius: 10px;
+   clear: both;
+   margin-left: 20px;
+   line-height: 0.92em;
+}
+
+.anderertext > .username {
+  font-weight: bold;
+  color: red;
+}
+
+.time {
+  text-align: right;
+  color: #888888;
+  font-size: 0.7em;
+  font-family: Arial;
+}
+
+/* width */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #d8d6bb; 
+    border-radius: 5px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #a29c5d; 
+    border-radius: 5px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #827d4a; 
+}
+
