@@ -129,6 +129,16 @@ app.post("/register", (req, res) => {
 
       userDatabase.update({loginkey: loginkey}, {$set: {username: username, favcolor: favcolor, timestamp: Date.now()}});
 
+      // Systemnachricht wegen Neu-Registrierung
+      let systemnachricht = {
+        username: "",
+        nachricht: `${username} hat den Chat betreten`,
+        timestamp: Date.now(),
+        color: ""
+      };
+      messageDatabase.insert(systemnachricht);
+      sendWSToAll(systemnachricht);
+
       res.json({username: username, favcolor: favcolor, timestamp: data.timestamp});
    })
 });
@@ -159,13 +169,7 @@ wss.on("connection", function(ws) {
         msg.payload.timestamp = Date.now();
         messageDatabase.insert(msg.payload);
 
-        for(let con of connections) {
-          let userMsg = {
-            command: "neuemessage",
-            payload: msg.payload
-          }
-          con.socket.send(JSON.stringify(userMsg));
-        }
+        sendWSToAll(msg.payload);
         break;
     }
   });
@@ -179,3 +183,13 @@ wss.on("connection", function(ws) {
     }
   });
 })
+
+function sendWSToAll(payload) {
+  for(let con of connections) {
+    let userMsg = {
+      command: "neuemessage",
+      payload: payload
+    }
+    con.socket.send(JSON.stringify(userMsg));
+  }
+}
