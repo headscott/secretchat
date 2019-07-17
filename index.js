@@ -127,7 +127,7 @@ app.post("/register", (req, res) => {
          return;
       }
 
-      userDatabase.update({loginkey: loginkey}, {$set: {username: username, favcolor: favcolor}});
+      userDatabase.update({loginkey: loginkey}, {$set: {username: username, favcolor: favcolor, timestamp: Date.now()}});
 
       res.json({username: username, favcolor: favcolor, timestamp: data.timestamp});
    })
