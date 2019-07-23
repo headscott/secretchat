@@ -1,22 +1,30 @@
 var WebSocketServer = require("ws").Server;
 let express = require("express");
-let Datastore = require("nedb");
+//let Datastore = require("nedb");
+
+let mongoose = require("mongoose");
+
 let bodyParser = require('body-parser');
 let http = require('http');
 
-let userDatabase = new Datastore("user.db");
-userDatabase.loadDatabase();
+// MongoDB
+var configDB = require('./config/database.js');
+mongoose.connect(process.env.MONGODB_URI || configDB.url);
 
-let messageDatabase = new Datastore("messages.db");
-messageDatabase.loadDatabase();
+// Modelle
+let User = require('./model/user');
+let Message = require('./model/message');
 
-let userobject = {
-   username: "",
-   loginkey: "345678",
-   favcolor: '#00ff00'
-}
 
-//userDatabase.insert(userobject);
+// // User hinzufügen
+// let newUser = new User({
+//    username: "",
+//    loginkey: "123456",
+//    favcolor: "#FF9000",
+//    timestamp: 1563878819230
+// });
+
+// newUser.save();
 
 let app = express();
 
@@ -61,7 +69,7 @@ let port = process.env.PORT || 8080;
 app.get("/loaduser/:username", (req, res) => {
    //console.log(req.params.username);
 
-   userDatabase.find({username: req.params.username}, (err, data) => {
+   User.find({username: req.params.username}, (err, data) => {
       res.json(data);
    })
 });
@@ -69,7 +77,7 @@ app.get("/loaduser/:username", (req, res) => {
 app.get("/messages/:timestamp", (req, res) => {
   let timestamp = Number(req.params.timestamp);
 
-  messageDatabase.find({timestamp: {$gt: timestamp}}, (err, data) => {
+  Message.find({timestamp: {$gt: timestamp}}, (err, data) => {
 
     data.sort((a,b) => a.timestamp - b.timestamp);
 
@@ -86,9 +94,9 @@ app.post("/login", (req, res) => {
       return;
    }
 
-   userDatabase.findOne({loginkey: loginkey}, (err, data) => {
+   User.findOne({loginkey: loginkey}, (err, data) => {
       if(err || !data) {
-         console.log("Error oder keine Daten")
+         console.log("Error oder keine Daten: " + err)
          res.status(500).end("Server Error");
          return;
       }
@@ -115,7 +123,7 @@ app.post("/register", (req, res) => {
       return;
    }
 
-   userDatabase.findOne({loginkey: loginkey}, (err, data) => {
+   User.findOne({loginkey: loginkey}, (err, data) => {
       if(err || !data) {
          console.log("Error oder keine Daten")
          res.status(500).end("Server Error");
@@ -127,16 +135,17 @@ app.post("/register", (req, res) => {
          return;
       }
 
-      userDatabase.update({loginkey: loginkey}, {$set: {username: username, favcolor: favcolor, timestamp: Date.now()}});
+      User.update({loginkey: loginkey}, {$set: {username: username, favcolor: favcolor, timestamp: Date.now()}}, (err, data) => {
+      });
 
       // Systemnachricht wegen Neu-Registrierung
-      let systemnachricht = {
+      let systemnachricht = new Message({
         username: "",
         nachricht: `${username} hat den Chat betreten`,
         timestamp: Date.now(),
         color: ""
-      };
-      messageDatabase.insert(systemnachricht);
+      });
+      systemnachricht.save();
       sendWSToAll(systemnachricht);
 
       res.json({username: username, favcolor: favcolor, timestamp: data.timestamp});
@@ -167,7 +176,9 @@ wss.on("connection", function(ws) {
         break;
       case "message":
         msg.payload.timestamp = Date.now();
-        messageDatabase.insert(msg.payload);
+
+        let newmessage = new Message(msg.payload);
+        newmessage.save();
 
         sendWSToAll(msg.payload);
         break;
