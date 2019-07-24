@@ -1,19 +1,30 @@
 var WebSocketServer = require("ws").Server;
 let express = require("express");
-//let Datastore = require("nedb");
-
 let mongoose = require("mongoose");
+
+// JWT
+let jwt = require('jsonwebtoken');
 
 let bodyParser = require('body-parser');
 let http = require('http');
 
 // MongoDB
 var configDB = require('./config/database.js');
-mongoose.connect(process.env.MONGODB_URI || configDB.url);
+mongoose.connect(process.env.MONGODB_URI || configDB.url, {
+   useNewUrlParser: true,
+   useCreateIndex: true
+});
 
 // Modelle
 let User = require('./model/user');
 let Message = require('./model/message');
+let Secret = require('./model/secret');
+
+let secret = "";
+Secret.findOne({}, (err, data) => {
+  secret = data.secret;
+  console.log("JWT started");
+})
 
 
 // // User hinzufügen
@@ -54,7 +65,7 @@ app.use(function (req, res, next) {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
 
     // Request headers you wish to allow
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
 
     // Set to true if you need the website to include cookies in the requests sent
     // to the API (e.g. in case you use sessions)
@@ -66,7 +77,7 @@ app.use(function (req, res, next) {
 
 let port = process.env.PORT || 8080;
 
-app.get("/loaduser/:username", (req, res) => {
+app.get("/loaduser/:username", mustBeLoggedIn, (req, res) => {
    //console.log(req.params.username);
 
    User.find({username: req.params.username}, (err, data) => {
@@ -74,7 +85,7 @@ app.get("/loaduser/:username", (req, res) => {
    })
 });
 
-app.get("/messages/:timestamp", (req, res) => {
+app.get("/messages/:timestamp", mustBeLoggedIn, (req, res) => {
   let timestamp = Number(req.params.timestamp);
 
   Message.find({timestamp: {$gt: timestamp}}, (err, data) => {
@@ -108,7 +119,15 @@ app.post("/login", (req, res) => {
          return;
       }
 
-      res.json({username: data.username, favcolor: data.favcolor, timestamp: data.timestamp});
+      let token = jwt.sign({
+         username: data.username
+      }, secret, {
+         algorithm: "HS256",
+         expiresIn: "1d",
+         issuer: "oursecretchat"
+      });
+
+      res.json({username: data.username, favcolor: data.favcolor, timestamp: data.timestamp, token: token});
    })
 });
 
@@ -148,7 +167,15 @@ app.post("/register", (req, res) => {
       systemnachricht.save();
       sendWSToAll(systemnachricht);
 
-      res.json({username: username, favcolor: favcolor, timestamp: data.timestamp});
+      let token = jwt.sign({
+         username: username
+      }, secret, {
+         algorithm: "HS256",
+         expiresIn: "1d",
+         issuer: "oursecretchat"
+      });
+
+      res.json({username: username, favcolor: favcolor, timestamp: data.timestamp, token: token});
    })
 });
 
@@ -202,5 +229,20 @@ function sendWSToAll(payload) {
       payload: payload
     }
     con.socket.send(JSON.stringify(userMsg));
+  }
+}
+
+function mustBeLoggedIn(req, res, next) {
+  // Authorization Header must contain valid token
+  if(req.headers.authorization) {
+    let token = req.headers.authorization.substring(7);
+
+    if(!jwt.verify(token, secret, {algorithms: ["HS256"], issuer: "oursecretchat"}))
+      res.status(401).json("Unauthorized");
+    else
+      next();
+
+  } else {
+    res.status(401).json("Unauthorized");
   }
 }
