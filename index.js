@@ -10,7 +10,7 @@ let http = require('http');
 
 // MongoDB
 var configDB = require('./config/database.js');
-mongoose.connect(process.env.MONGODB_URI || configDB.url, {
+mongoose.connect(process.env.ATLAS_URI || configDB.url, {
    useNewUrlParser: true,
    useCreateIndex: true
 });
